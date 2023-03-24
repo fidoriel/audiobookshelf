@@ -312,17 +312,8 @@ class Stream extends EventEmitter {
     this.ffmpeg.on('start', (command) => {
       Logger.info('[INFO] FFMPEG transcoding started with command: ' + command)
       Logger.info('')
-      if (this.isResetting) {
-        // AAC encode is much slower
-        const clearIsResettingTime = this.transcodeForceAAC ? 10000 : 500
-        setTimeout(() => {
-          Logger.info('[STREAM] Clearing isResetting')
-          this.isResetting = false
-          this.startLoop()
-        }, clearIsResettingTime)
-      } else {
-        this.startLoop()
-      }
+      this.isResetting = false
+      this.startLoop()
     })
 
     this.ffmpeg.on('stderr', (stdErrline) => {

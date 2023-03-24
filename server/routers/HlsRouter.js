@@ -33,8 +33,18 @@ class HlsRouter {
     var fullFilePath = Path.join(this.playbackSessionManager.StreamsPath, streamId, req.params.file)
 
     var exists = await fs.pathExists(fullFilePath)
+    const lockFile = fullFilePath + '.lock'
     if (!exists) {
       Logger.warn('File path does not exist', fullFilePath)
+
+      var lockExists = await fs.pathExists(lockFile)
+      if (!lockExists) {
+        fs.closeSync(fs.openSync(lockFile, 'w'))
+        Logger.info(`[HlsRouter] Stream ${streamId} lockfile ${lockFile} created`)
+      } else {
+        Logger.debug(`[HlsRouter] Stream ${streamId} is currently waiting for lockfile ${lockFile} to be removed`)
+        return res.sendStatus(404)
+      }
 
       var fileExt = Path.extname(req.params.file)
       if (fileExt === '.ts' || fileExt === '.m4s') {
@@ -64,6 +74,14 @@ class HlsRouter {
     }
 
     // Logger.info('Sending file', fullFilePath)
+    fs.stat(lockFile, (err, stats) => {
+      if (err) {
+        // Logger.debug(`[HlsRouter] Stream ${streamId} lockfile ${lockFile} does not exist`)
+        return
+      }
+      fs.unlink(lockFile)
+      Logger.info(`[HlsRouter] Stream ${streamId} lockfile ${lockFile} removed`)
+    })
     res.sendFile(fullFilePath)
   }
 }
